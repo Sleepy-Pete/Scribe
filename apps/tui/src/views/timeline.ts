@@ -1,6 +1,7 @@
 import blessed from 'blessed';
 import { ApiClient } from '../api-client';
 import { TimelineBlock } from '@scribe/types';
+import { styles, colors, styledText } from '../styles';
 
 export class TimelineView {
   private screen: blessed.Widgets.Screen;
@@ -28,9 +29,9 @@ export class TimelineView {
       },
       style: {
         border: {
-          fg: '#00ffff'
+          fg: colors.borderLight
         },
-        bg: '#1a1a1a'
+        bg: colors.bgDark
       },
       label: ' Activities ',
       hidden: true
@@ -48,28 +49,24 @@ export class TimelineView {
       mouse: true,
       tags: true,
       padding: {
-        left: 1,
-        right: 1
+        left: 2,
+        right: 2,
+        top: 1,
+        bottom: 1
       },
       scrollbar: {
         ch: '█',
         track: {
-          bg: '#1a1a1a'
+          bg: colors.bgDark
         },
         style: {
-          bg: '#00ffff'
+          bg: colors.borderLight
         }
       },
       style: {
-        selected: {
-          bg: '#00ffff',
-          fg: '#1a1a1a',
-          bold: true
-        },
-        item: {
-          fg: '#e0e0e0'
-        },
-        bg: '#1a1a1a'
+        selected: styles.list.selected,
+        item: styles.list.item,
+        bg: colors.bgDark
       }
     });
 
@@ -85,25 +82,26 @@ export class TimelineView {
       },
       style: {
         border: {
-          fg: '#00ffff'
+          fg: colors.borderLight
         },
-        bg: '#1a1a1a'
+        bg: colors.bgDark
       },
       label: ' Details ',
       padding: {
-        left: 1,
-        right: 1,
-        top: 1
+        left: 2,
+        right: 2,
+        top: 1,
+        bottom: 1
       },
       scrollable: true,
       alwaysScroll: true,
       scrollbar: {
         ch: '█',
         track: {
-          bg: '#1a1a1a'
+          bg: colors.bgDark
         },
         style: {
-          bg: '#00ffff'
+          bg: colors.borderLight
         }
       },
       hidden: true,
@@ -131,7 +129,7 @@ export class TimelineView {
     } else {
       // Add summary at top
       const totalSeconds = timeline.reduce((sum, b) => sum + b.active_seconds, 0);
-      items.push(`{bold}{cyan-fg}Total: ${this.formatDuration(totalSeconds)} | Activities: ${timeline.length}{/cyan-fg}{/bold}`);
+      items.push(styledText.boldAccent(`Total: ${this.formatDuration(totalSeconds)} | Activities: ${timeline.length}`));
       items.push('');
 
       for (let i = 0; i < this.timelineData.length; i++) {
@@ -141,33 +139,34 @@ export class TimelineView {
         const duration = this.formatDuration(block.active_seconds);
 
         // Determine icon and color based on kind
-        let icon = '💻';
-        let color = 'white';
+        // Using ASCII symbols to avoid emoji width issues in terminal
+        let icon = '[A]';  // App
+        let color = '#ffffff';
         const labelLower = block.label.toLowerCase();
 
         if (block.kind === 'call') {
-          icon = '📞';
-          color = 'green';
+          icon = '[C]';  // Call
+          color = '#00ff00';  // Bright green for calls
         } else if (block.kind === 'web') {
-          icon = '🌐';
-          color = 'blue';
+          icon = '[W]';  // Web
+          color = '#5b9bd5';  // Blue for web
         } else if (block.kind === 'app') {
           // Categorize apps by name
           if (labelLower.includes('discord')) {
-            icon = '💬';
-            color = 'magenta';
+            icon = '[D]';  // Discord
+            color = '#ff69b4';  // Pink for chat
           } else if (labelLower.includes('obsidian')) {
-            icon = '📝';
-            color = 'yellow';
+            icon = '[N]';  // Notes
+            color = '#ffd700';  // Gold for notes
           } else if (labelLower.includes('chrome') || labelLower.includes('safari') || labelLower.includes('firefox')) {
-            icon = '🌐';
-            color = 'blue';
+            icon = '[B]';  // Browser
+            color = '#5b9bd5';  // Blue for browsers
           } else if (labelLower.includes('code') || labelLower.includes('xcode') || labelLower.includes('terminal')) {
-            icon = '⌨️';
-            color = 'cyan';
+            icon = '[>]';  // Dev
+            color = '#00d4ff';  // Cyan for dev tools
           } else if (labelLower.includes('slack') || labelLower.includes('messages')) {
-            icon = '💬';
-            color = 'magenta';
+            icon = '[M]';  // Messages
+            color = '#ff69b4';  // Pink for messaging
           }
         }
 
@@ -183,7 +182,8 @@ export class TimelineView {
         }
 
         // Column-based format with colors
-        const mainLine = `${icon} {${color}-fg}${label.padEnd(32)}{/${color}-fg} {gray-fg}${startTime}-${endTime}{/gray-fg} {cyan-fg}${duration}{/cyan-fg}`;
+        // Add extra space after icon to handle emoji width issues in terminal
+        const mainLine = `${icon}  {${color}-fg}${label.padEnd(32)}{/${color}-fg} {${colors.darkGray}-fg}${startTime}-${endTime}{/${colors.darkGray}-fg} {${colors.warning}-fg}${duration}{/${colors.warning}-fg}`;
         items.push(mainLine);
 
         // Add detail on next line if available and different from label
@@ -191,7 +191,7 @@ export class TimelineView {
           const truncatedDetail = block.detail.length > 90
             ? block.detail.substring(0, 87) + '...'
             : block.detail;
-          items.push(`   {gray-fg}${truncatedDetail}{/gray-fg}`);
+          items.push(`   {${colors.gray}-fg}${truncatedDetail}{/${colors.gray}-fg}`);
         }
 
         items.push(''); // Empty line for spacing
@@ -226,42 +226,41 @@ export class TimelineView {
 
     let content = '';
 
+    const accentColor = colors.borderLight;
+    const textColor = colors.lightGray;
+    const durationColor = colors.warning;
+
     // Activity Type
-    content += `{bold}{cyan-fg}┌─ Activity Type{/cyan-fg}{/bold}\n`;
-    content += `{cyan-fg}│{/cyan-fg} {white-fg}${this.getKindDisplaySimple(block.kind)}{/white-fg}\n`;
-    content += `{cyan-fg}└{/cyan-fg}${'─'.repeat(35)}\n\n`;
+    content += `{bold}{${colors.secondary}-fg}Activity Type{/${colors.secondary}-fg}{/bold}\n`;
+    content += `{${textColor}-fg}${this.getKindDisplaySimple(block.kind)}{/${textColor}-fg}\n\n`;
 
     // Application/Label
-    content += `{bold}{cyan-fg}┌─ Application{/cyan-fg}{/bold}\n`;
-    content += `{cyan-fg}│{/cyan-fg} {white-fg}${block.label}{/white-fg}\n`;
-    content += `{cyan-fg}└{/cyan-fg}${'─'.repeat(35)}\n\n`;
+    content += `{bold}{${colors.secondary}-fg}Application{/${colors.secondary}-fg}{/bold}\n`;
+    content += `{${textColor}-fg}${block.label}{/${textColor}-fg}\n\n`;
 
     // Details
     if (block.detail) {
-      content += `{bold}{cyan-fg}┌─ Details{/cyan-fg}{/bold}\n`;
-      const detailLines = this.wrapText(block.detail, 33);
+      content += `{bold}{${colors.secondary}-fg}Details{/${colors.secondary}-fg}{/bold}\n`;
+      const detailLines = this.wrapText(block.detail, 34);
       detailLines.forEach(line => {
-        content += `{cyan-fg}│{/cyan-fg} {white-fg}${line}{/white-fg}\n`;
+        content += `{${textColor}-fg}${line}{/${textColor}-fg}\n`;
       });
-      content += `{cyan-fg}└{/cyan-fg}${'─'.repeat(35)}\n\n`;
+      content += `\n`;
     }
 
     // Time Range
-    content += `{bold}{cyan-fg}┌─ Time Range{/cyan-fg}{/bold}\n`;
-    content += `{cyan-fg}│{/cyan-fg} {white-fg}Start: ${startTime}{/white-fg}\n`;
-    content += `{cyan-fg}│{/cyan-fg} {white-fg}End:   ${endTime}{/white-fg}\n`;
-    content += `{cyan-fg}└{/cyan-fg}${'─'.repeat(35)}\n\n`;
+    content += `{bold}{${colors.secondary}-fg}Time Range{/${colors.secondary}-fg}{/bold}\n`;
+    content += `{${textColor}-fg}Start: ${startTime}{/${textColor}-fg}\n`;
+    content += `{${textColor}-fg}End:   ${endTime}{/${textColor}-fg}\n\n`;
 
     // Duration
-    content += `{bold}{cyan-fg}┌─ Duration{/cyan-fg}{/bold}\n`;
-    content += `{cyan-fg}│{/cyan-fg} {yellow-fg}${duration}{/yellow-fg}\n`;
-    content += `{cyan-fg}└{/cyan-fg}${'─'.repeat(35)}\n\n`;
+    content += `{bold}{${colors.secondary}-fg}Duration{/${colors.secondary}-fg}{/bold}\n`;
+    content += `{${durationColor}-fg}${duration}{/${durationColor}-fg}\n\n`;
 
     // Call Provider (if applicable)
     if (block.call_provider) {
-      content += `{bold}{cyan-fg}┌─ Call Provider{/cyan-fg}{/bold}\n`;
-      content += `{cyan-fg}│{/cyan-fg} {white-fg}${this.getCallProviderName(block.call_provider)}{/white-fg}\n`;
-      content += `{cyan-fg}└{/cyan-fg}${'─'.repeat(35)}\n\n`;
+      content += `{bold}{${colors.secondary}-fg}Call Provider{/${colors.secondary}-fg}{/bold}\n`;
+      content += `{${textColor}-fg}${this.getCallProviderName(block.call_provider)}{/${textColor}-fg}\n\n`;
     }
 
     this.detailBox.setContent(content);

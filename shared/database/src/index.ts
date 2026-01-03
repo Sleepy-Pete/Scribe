@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { ActivityEvent, Setting, EventKind, CallProvider } from '@scribe/types';
+import { ActivityEvent, Setting, EventKind, CallProvider, DateSummary } from '@scribe/types';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -105,6 +105,10 @@ export const updateEvent = (id: number, updates: Partial<ActivityEvent>): void =
     fields.push('kind = ?');
     values.push(updates.kind);
   }
+  if (updates.window_title !== undefined) {
+    fields.push('window_title = ?');
+    values.push(updates.window_title);
+  }
 
   if (fields.length === 0) return;
 
@@ -136,6 +140,24 @@ export const getCallEvents = (startTs: number, endTs: number): ActivityEvent[] =
   const stmt = db.prepare('SELECT * FROM events WHERE kind = ? AND start_ts >= ? AND start_ts < ? ORDER BY start_ts ASC');
   const rows = stmt.all('call', startTs, endTs) as any[];
   return rows.map(rowToEvent);
+};
+
+export const getAvailableDates = (): DateSummary[] => {
+  const stmt = db.prepare(`
+    SELECT
+      date(start_ts/1000, 'unixepoch', 'localtime') as date,
+      COUNT(*) as event_count,
+      SUM(CAST((end_ts - start_ts) / 1000 AS INTEGER)) as total_active_seconds
+    FROM events
+    GROUP BY date(start_ts/1000, 'unixepoch', 'localtime')
+    ORDER BY date DESC
+  `);
+  const rows = stmt.all() as any[];
+  return rows.map(row => ({
+    date: row.date,
+    event_count: row.event_count,
+    total_active_seconds: row.total_active_seconds
+  }));
 };
 
 // Settings operations

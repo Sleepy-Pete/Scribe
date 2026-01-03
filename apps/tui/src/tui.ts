@@ -2,13 +2,14 @@ import blessed from 'blessed';
 import { TimelineView } from './views/timeline';
 import { StatsView } from './views/stats';
 import { SettingsView } from './views/settings';
-import { JiraView } from './views/jira';
+import { ExportView } from './views/export';
 import { ApiClient } from './api-client';
+import { styles, padding, styledText } from './styles';
 
 export class ScribeTUI {
   private screen: blessed.Widgets.Screen;
   private apiClient: ApiClient;
-  private currentTab: 'timeline' | 'stats' | 'jira' | 'settings' = 'timeline';
+  private currentTab: 'timeline' | 'stats' | 'settings' | 'export' = 'timeline';
   private refreshInterval?: NodeJS.Timeout;
 
   // UI Components
@@ -20,8 +21,8 @@ export class ScribeTUI {
   // Views
   private timelineView: TimelineView;
   private statsView: StatsView;
-  private jiraView: JiraView;
   private settingsView: SettingsView;
+  private exportView: ExportView;
 
   constructor() {
     // Create screen
@@ -42,8 +43,10 @@ export class ScribeTUI {
     // Create views
     this.timelineView = new TimelineView(this.screen, this.contentContainer, this.apiClient);
     this.statsView = new StatsView(this.screen, this.contentContainer, this.apiClient);
-    this.jiraView = new JiraView(this.screen, this.contentContainer, this.apiClient);
     this.settingsView = new SettingsView(this.screen, this.contentContainer, this.apiClient);
+    this.exportView = new ExportView(this.screen, this.contentContainer, this.apiClient, (date) => {
+      this.exportToObsidian(date);
+    });
 
     // Setup key bindings
     this.setupKeyBindings();
@@ -59,16 +62,10 @@ export class ScribeTUI {
       left: 0,
       width: '100%',
       height: 3,
-      content: '{center}{bold}Scribe Activity Tracker{/bold}{/center}',
+      content: styledText.center(styledText.bold('Scribe Activity Tracker')),
       tags: true,
-      padding: {
-        top: 1
-      },
-      style: {
-        fg: 'white',
-        bg: '#1a1a1a',
-        bold: true
-      }
+      padding: padding.header,
+      style: styles.header
     });
   }
 
@@ -84,10 +81,7 @@ export class ScribeTUI {
         left: 2,
         top: 0
       },
-      style: {
-        fg: 'white',
-        bg: '#0a0a0a'
-      }
+      style: styles.tabBar
     });
 
     return tabBar;
@@ -97,16 +91,16 @@ export class ScribeTUI {
     const tabs = [
       { key: 'timeline', label: 'Timeline [1]' },
       { key: 'stats', label: 'Statistics [2]' },
-      { key: 'jira', label: 'Jira [3]' },
-      { key: 'settings', label: 'Settings [4]' }
+      { key: 'settings', label: 'Settings [3]' },
+      { key: 'export', label: 'Export [4]' }
     ];
 
     const tabContent = tabs.map(tab => {
       const isActive = tab.key === this.currentTab;
       if (isActive) {
-        return `{#00ffff-fg}{bold} ${tab.label} {/bold}{/#00ffff-fg}`;
+        return styledText.tabActive(tab.label);
       } else {
-        return `{#666666-fg} ${tab.label} {/#666666-fg}`;
+        return styledText.tabInactive(tab.label);
       }
     }).join('   ');
 
@@ -120,16 +114,8 @@ export class ScribeTUI {
       left: 0,
       width: '100%',
       height: '100%-6',
-      padding: {
-        left: 2,
-        right: 2,
-        top: 1,
-        bottom: 1
-      },
-      style: {
-        fg: '#e0e0e0',
-        bg: '#1a1a1a'
-      }
+      padding: padding.content,
+      style: styles.contentContainer
     });
   }
 
@@ -140,13 +126,9 @@ export class ScribeTUI {
       left: 0,
       width: '100%',
       height: 1,
-      content: ' q:quit | 1-4:tabs | r:refresh | e:export to Obsidian | ↑↓/j/k:scroll',
+      content: ' q:quit | 1-4:tabs | r:refresh | e/Enter:export (in Export tab) | ↑↓/j/k:scroll',
       tags: true,
-      style: {
-        fg: '#1a1a1a',
-        bg: '#00ffff',
-        bold: true
-      }
+      style: styles.statusBar
     });
   }
 
@@ -160,17 +142,21 @@ export class ScribeTUI {
     // Tab switching
     this.screen.key(['1'], () => this.switchTab('timeline'));
     this.screen.key(['2'], () => this.switchTab('stats'));
-    this.screen.key(['3'], () => this.switchTab('jira'));
-    this.screen.key(['4'], () => this.switchTab('settings'));
+    this.screen.key(['3'], () => this.switchTab('settings'));
+    this.screen.key(['4'], () => this.switchTab('export'));
 
     // Refresh
     this.screen.key(['r'], () => this.refresh());
 
-    // Export to Obsidian
-    this.screen.key(['e'], () => this.exportToObsidian());
+    // Export to Obsidian (only works when not in export tab, as export tab handles 'e' internally)
+    this.screen.key(['e'], () => {
+      if (this.currentTab !== 'export') {
+        this.exportToObsidian();
+      }
+    });
   }
 
-  private switchTab(tab: 'timeline' | 'stats' | 'jira' | 'settings') {
+  private switchTab(tab: 'timeline' | 'stats' | 'settings' | 'export') {
     this.currentTab = tab;
     this.updateTabBar();
     this.refresh();
@@ -184,8 +170,8 @@ export class ScribeTUI {
       // Hide all views first
       this.timelineView.hide();
       this.statsView.hide();
-      this.jiraView.hide();
       this.settingsView.hide();
+      this.exportView.hide();
 
       // Show and render the current view
       switch (this.currentTab) {
@@ -195,14 +181,14 @@ export class ScribeTUI {
         case 'stats':
           await this.statsView.show();
           break;
-        case 'jira':
-          await this.jiraView.show();
-          break;
         case 'settings':
           await this.settingsView.show();
           break;
+        case 'export':
+          await this.exportView.show();
+          break;
       }
-      this.statusBar.setContent('q:quit | 1-4:tabs | r:refresh | e:export to Obsidian | ↑↓/j/k:scroll');
+      this.statusBar.setContent('q:quit | 1-4:tabs | r:refresh | e/Enter:export (in Export tab) | ↑↓/j/k:scroll');
     } catch (error: any) {
       this.statusBar.setContent(`Error: ${error.message}`);
     }
@@ -210,18 +196,24 @@ export class ScribeTUI {
     this.screen.render();
   }
 
-  private async exportToObsidian() {
-    this.statusBar.setContent('Exporting to Obsidian...');
+  private async exportToObsidian(date?: string) {
+    const dateStr = date ? ` for ${date}` : ' for today';
+    this.statusBar.setContent(`Exporting${dateStr} to Obsidian...`);
     this.screen.render();
 
     try {
+      const body = date ? JSON.stringify({ date }) : undefined;
+      const headers = date ? { 'Content-Type': 'application/json' } : undefined;
+
       const response = await fetch('http://127.0.0.1:3737/api/obsidian/export', {
-        method: 'POST'
+        method: 'POST',
+        headers,
+        body
       });
 
       if (response.ok) {
         const result: any = await response.json();
-        this.statusBar.setContent(`✓ Exported to Obsidian: ${result.file_path || 'Success'}`);
+        this.statusBar.setContent(`✓ Exported${dateStr} to Obsidian: ${result.file_path || 'Success'}`);
       } else {
         const error = await response.text();
         this.statusBar.setContent(`✗ Export failed: ${error}`);
@@ -234,7 +226,7 @@ export class ScribeTUI {
 
     // Reset status bar after 3 seconds
     setTimeout(() => {
-      this.statusBar.setContent('q:quit | 1-4:tabs | r:refresh | e:export to Obsidian | ↑↓/j/k:scroll');
+      this.statusBar.setContent('q:quit | 1-4:tabs | r:refresh | e/Enter:export (in Export tab) | ↑↓/j/k:scroll');
       this.screen.render();
     }, 3000);
   }

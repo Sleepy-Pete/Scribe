@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { DailyStats, TimelineBlock } from '@scribe/types';
+import { DailyStats, TimelineBlock, DateSummary } from '@scribe/types';
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -44,6 +44,11 @@ export class ApiClient {
   async getJiraIssues(): Promise<any[]> {
     const response = await this.client.get('/api/jira/issues');
     return response.data.issues || [];
+  }
+
+  async getAvailableDates(): Promise<DateSummary[]> {
+    const response = await this.client.get('/api/dates/available');
+    return response.data.dates;
   }
 }
 

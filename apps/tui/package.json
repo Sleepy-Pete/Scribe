@@ -9,10 +9,10 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@scribe/types": "file:../../shared/types",
     "@scribe/database": "file:../../shared/database",
-    "blessed": "^0.1.81",
-    "axios": "^1.6.0"
+    "@scribe/types": "file:../../shared/types",
+    "axios": "^1.6.0",
+    "blessed": "^0.1.81"
   },
   "devDependencies": {
     "@types/blessed": "^0.1.25",
@@ -21,4 +21,3 @@
     "typescript": "^5.0.0"
   }
 }
-

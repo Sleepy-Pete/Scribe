@@ -7,10 +7,11 @@ import {
   setSetting,
   getAllSettings,
   insertEvent,
+  getAvailableDates,
   DB_PATH
 } from '@scribe/database';
 import { ActivityEvent, DailyStats, TimelineBlock } from '@scribe/types';
-import { exportToObsidian, generateDailyMarkdown, getObsidianSettings } from './obsidian';
+import { exportToObsidian, generateDailyMarkdown, getObsidianSettings, startAutoExportScheduler } from './obsidian';
 
 const app = express();
 const PORT = 3737;
@@ -127,7 +128,8 @@ app.get('/api/timeline/today', (req, res) => {
       detail: event.kind === 'web' ? event.url : event.window_title,
       start_ts: event.start_ts,
       end_ts: event.end_ts,
-      active_seconds: event.active_seconds,
+      // Calculate duration from timestamps instead of using active_seconds
+      active_seconds: Math.floor((event.end_ts - event.start_ts) / 1000),
       call_provider: event.call_provider
     }));
 
@@ -140,9 +142,12 @@ app.get('/api/timeline/today', (req, res) => {
 // Get daily stats
 app.get('/api/stats/daily', (req, res) => {
   try {
-    // Get date in local timezone
+    // Get date in local timezone (not UTC)
     const now = new Date();
-    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const currentDay = String(now.getDate()).padStart(2, '0');
+    const localDate = `${currentYear}-${currentMonth}-${currentDay}`;
     const date = req.query.date as string || localDate;
 
     // Parse date and create start/end of day in local timezone
@@ -153,8 +158,8 @@ app.get('/api/stats/daily', (req, res) => {
     const events = getEventsInRange(startOfDay, endOfDay);
     const calls = getCallEvents(startOfDay, endOfDay);
 
-    // Calculate total active time
-    const total_active_seconds = events.reduce((sum, e) => sum + e.active_seconds, 0);
+    // Calculate total active time from timestamps instead of active_seconds to avoid rounding errors
+    const total_active_seconds = events.reduce((sum, e) => sum + Math.floor((e.end_ts - e.start_ts) / 1000), 0);
 
     // Calculate app switches (count ALL context switches between different activities)
     let app_switches = 0;
@@ -185,34 +190,36 @@ app.get('/api/stats/daily', (req, res) => {
       }
     }
 
-    // Top apps
+    // Top apps - calculate duration from timestamps
     const appMap = new Map<string, number>();
     events.filter(e => e.kind === 'app' && e.app_name).forEach(e => {
       const current = appMap.get(e.app_name!) || 0;
-      appMap.set(e.app_name!, current + e.active_seconds);
+      const duration = Math.floor((e.end_ts - e.start_ts) / 1000);
+      appMap.set(e.app_name!, current + duration);
     });
     const top_apps = Array.from(appMap.entries())
       .map(([app_name, active_seconds]) => ({ app_name, active_seconds }))
       .sort((a, b) => b.active_seconds - a.active_seconds)
       .slice(0, 10);
 
-    // Top sites
+    // Top sites - calculate duration from timestamps
     const siteMap = new Map<string, number>();
     events.filter(e => e.kind === 'web' && e.domain).forEach(e => {
       const current = siteMap.get(e.domain!) || 0;
-      siteMap.set(e.domain!, current + e.active_seconds);
+      const duration = Math.floor((e.end_ts - e.start_ts) / 1000);
+      siteMap.set(e.domain!, current + duration);
     });
     const top_sites = Array.from(siteMap.entries())
       .map(([domain, active_seconds]) => ({ domain, active_seconds }))
       .sort((a, b) => b.active_seconds - a.active_seconds)
       .slice(0, 10);
 
-    // Call sessions
+    // Call sessions - calculate duration from timestamps
     const callSessions = calls.map(c => ({
       call_provider: c.call_provider!,
       start_ts: c.start_ts,
       end_ts: c.end_ts,
-      duration_seconds: c.active_seconds
+      duration_seconds: Math.floor((c.end_ts - c.start_ts) / 1000)
     }));
 
     const stats: DailyStats = {
@@ -225,6 +232,16 @@ app.get('/api/stats/daily', (req, res) => {
     };
 
     res.json(stats);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available dates with data
+app.get('/api/dates/available', (req, res) => {
+  try {
+    const dates = getAvailableDates();
+    res.json({ dates });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -332,6 +349,9 @@ app.put('/api/obsidian/settings', (req, res) => {
       setSetting('obsidian_export_time', export_time);
     }
 
+    // Restart scheduler with new settings
+    startAutoExportScheduler();
+
     const updatedSettings = getObsidianSettings();
     res.json({ success: true, settings: updatedSettings });
   } catch (error: any) {
@@ -344,9 +364,10 @@ app.get('/api/export/obsidian', (req, res) => {
   try {
     const date = req.query.date as string || new Date().toISOString().split('T')[0];
 
-    // Parse date and get events for that day
-    const dateObj = new Date(date);
-    const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()).getTime();
+    // Parse date in local timezone to avoid UTC offset issues
+    const [year, month, day] = date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day); // month is 0-indexed
+    const startOfDay = dateObj.getTime();
     const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
     const events = getEventsInRange(startOfDay, endOfDay);
@@ -438,5 +459,8 @@ app.get('/api/jira/issues', async (req, res) => {
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`[API] Server running on http://127.0.0.1:${PORT}`);
   console.log(`[API] Database: ${DB_PATH}`);
+
+  // Start auto-export scheduler
+  startAutoExportScheduler();
 });
 

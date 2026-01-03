@@ -2,8 +2,26 @@
 
 # Scribe Activity Tracker TUI Startup Script
 
+# Load nvm if available
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Use Node 20
+nvm use 20 >/dev/null 2>&1 || true
+
 echo "🚀 Starting Scribe Activity Tracker (TUI Mode)..."
+echo "📌 Architecture: $(uname -m)"
+echo "📌 Using Node.js $(node --version)"
+echo "📌 Node binary: $(file $(which node) | cut -d: -f2)"
 echo ""
+
+# Check if better-sqlite3 needs to be rebuilt
+CURRENT_ARCH=$(uname -m)
+if [ ! -f "node_modules/better-sqlite3/build/Release/better_sqlite3.node" ]; then
+  echo "📦 Building better-sqlite3 for $CURRENT_ARCH..."
+  npm rebuild better-sqlite3 >/dev/null 2>&1
+  echo "✅ better-sqlite3 built"
+fi
 
 # Check if shared modules are built
 if [ ! -d "shared/types/dist" ] || [ ! -d "shared/database/dist" ]; then

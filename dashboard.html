@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scribe Activity Tracker - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #34c759;
+            color: white;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .code {
+            background: #2d2d2d;
+            color: #34c759;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Scribe Activity Tracker</h1>
+        <div class="status" id="status">Checking API...</div>
+        <p>Welcome to Scribe Activity Tracker! This tool helps you monitor and analyze your daily computer activity.</p>
+        
+        <div>
+            <a href="http://127.0.0.1:3737/dashboard" class="btn">Open Dashboard</a>
+            <a href="http://127.0.0.1:3737/api/stats/daily" class="btn">View API Stats</a>
+        </div>
+
+        <div class="info">
+            <strong>Quick Start:</strong><br>
+            1. Make sure the tracker is running: <span class="code">./start-tracker.sh</span><br>
+            2. Access the dashboard at <span class="code">http://127.0.0.1:3737/dashboard</span><br>
+            3. View your activity timeline and statistics in real-time
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:3737';
+        const statusEl = document.getElementById('status');
+
+        async function checkAPI() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    statusEl.textContent = '✅ API Server Running';
+                    statusEl.style.background = '#34c759';
+                } else {
+                    statusEl.textContent = '⚠️ API Server Error';
+                    statusEl.style.background = '#ff9500';
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ API Server Offline';
+                statusEl.style.background = '#ff3b30';
+            }
+        }
+
+        checkAPI();
+        setInterval(checkAPI, 5000);
+    </script>
+</body>
+</html>
+

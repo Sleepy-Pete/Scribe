@@ -1,5 +1,6 @@
 import blessed from 'blessed';
 import { ApiClient } from '../api-client';
+import { styles, colors, styledText } from '../styles';
 
 export class SettingsView {
   private screen: blessed.Widgets.Screen;
@@ -22,29 +23,26 @@ export class SettingsView {
       keys: true,
       vi: true,
       mouse: true,
+      tags: true,
       padding: {
-        left: 1,
-        right: 1
+        left: 2,
+        right: 2,
+        top: 1,
+        bottom: 1
       },
       scrollbar: {
         ch: '█',
         track: {
-          bg: '#1a1a1a'
+          bg: colors.bgDark
         },
         style: {
-          bg: '#00ffff'
+          bg: colors.borderLight
         }
       },
       style: {
-        selected: {
-          bg: '#00ffff',
-          fg: '#1a1a1a',
-          bold: true
-        },
-        item: {
-          fg: '#e0e0e0'
-        },
-        bg: '#1a1a1a'
+        selected: styles.list.selected,
+        item: styles.list.item,
+        bg: colors.bgDark
       },
       hidden: true
     });
@@ -55,60 +53,60 @@ export class SettingsView {
     const health = await this.apiClient.getHealth();
 
     const items: string[] = [
-      'SETTINGS & CONFIGURATION',
-      '═'.repeat(80),
+      styledText.boldAccent('SETTINGS & CONFIGURATION'),
+      `{${colors.borderLight}-fg}${'═'.repeat(80)}{/${colors.borderLight}-fg}`,
       '',
-      'System Information',
-      '─'.repeat(80),
-      '  API Status: ✓ Connected',
-      `  Database: ${health.database}`,
-      '  API Endpoint: http://127.0.0.1:3737',
+      styledText.bold(`{${colors.lightGray}-fg}System Information{/${colors.lightGray}-fg}`),
+      `{${colors.borderLight}-fg}${'─'.repeat(80)}{/${colors.borderLight}-fg}`,
+      `  {${colors.success}-fg}API Status: ✓ Connected{/${colors.success}-fg}`,
+      `  {${colors.lightGray}-fg}Database: ${health.database}{/${colors.lightGray}-fg}`,
+      `  {${colors.darkGray}-fg}API Endpoint: http://127.0.0.1:3737{/${colors.darkGray}-fg}`,
       '',
-      'Tracker Settings',
-      '─'.repeat(80),
+      styledText.bold(`{${colors.lightGray}-fg}Tracker Settings{/${colors.lightGray}-fg}`),
+      `{${colors.borderLight}-fg}${'─'.repeat(80)}{/${colors.borderLight}-fg}`,
     ];
 
     const pollingInterval = settings['polling_interval_ms'] || '1000';
     const idleTimeout = settings['idle_timeout_seconds'] || '60';
     const privacyMode = settings['privacy_mode'] || 'false';
 
-    items.push(`  Polling Interval: ${pollingInterval}ms (${parseInt(pollingInterval) / 1000}s)`);
-    items.push(`  Idle Timeout: ${idleTimeout}s (${parseInt(idleTimeout) / 60}min)`);
-    items.push(`  Privacy Mode: ${privacyMode === 'true' ? 'Enabled' : 'Disabled'}`);
+    items.push(`  {${colors.lightGray}-fg}Polling Interval:{/${colors.lightGray}-fg} {${colors.warning}-fg}${pollingInterval}ms{/${colors.warning}-fg} {${colors.darkGray}-fg}(${parseInt(pollingInterval) / 1000}s){/${colors.darkGray}-fg}`);
+    items.push(`  {${colors.lightGray}-fg}Idle Timeout:{/${colors.lightGray}-fg} {${colors.warning}-fg}${idleTimeout}s{/${colors.warning}-fg} {${colors.darkGray}-fg}(${parseInt(idleTimeout) / 60}min){/${colors.darkGray}-fg}`);
+    items.push(`  {${colors.lightGray}-fg}Privacy Mode:{/${colors.lightGray}-fg} {${colors.info}-fg}${privacyMode === 'true' ? 'Enabled' : 'Disabled'}{/${colors.info}-fg}`);
     items.push('');
 
-    items.push('Obsidian Integration');
-    items.push('─'.repeat(80));
+    items.push(styledText.bold(`{${colors.lightGray}-fg}Obsidian Integration{/${colors.lightGray}-fg}`));
+    items.push(`{${colors.borderLight}-fg}${'─'.repeat(80)}{/${colors.borderLight}-fg}`);
     const vaultPath = settings['obsidian_vault_path'] || 'Not configured';
     const autoExport = settings['obsidian_auto_export'] || 'false';
     const exportTime = settings['obsidian_export_time'] || 'Not set';
 
-    items.push(`  Vault Path: ${vaultPath}`);
-    items.push(`  Auto Export: ${autoExport === 'true' ? 'Enabled' : 'Disabled'}`);
-    items.push(`  Export Time: ${exportTime}`);
+    items.push(`  {${colors.lightGray}-fg}Vault Path:{/${colors.lightGray}-fg} {${colors.secondary}-fg}${vaultPath}{/${colors.secondary}-fg}`);
+    items.push(`  {${colors.lightGray}-fg}Auto Export:{/${colors.lightGray}-fg} {${colors.info}-fg}${autoExport === 'true' ? 'Enabled' : 'Disabled'}{/${colors.info}-fg}`);
+    items.push(`  {${colors.lightGray}-fg}Export Time:{/${colors.lightGray}-fg} {${colors.warning}-fg}${exportTime}{/${colors.warning}-fg}`);
     items.push('');
 
-    items.push('Data Export');
-    items.push('─'.repeat(80));
-    items.push('  Export formats available via API:');
-    items.push('    • JSON: GET /api/export?format=json');
-    items.push('    • CSV:  GET /api/export?format=csv');
-    items.push('    • Obsidian: POST /api/obsidian/export');
+    items.push(styledText.bold(`{${colors.lightGray}-fg}Data Export{/${colors.lightGray}-fg}`));
+    items.push(`{${colors.borderLight}-fg}${'─'.repeat(80)}{/${colors.borderLight}-fg}`);
+    items.push(`  {${colors.lightGray}-fg}Export formats available via API:{/${colors.lightGray}-fg}`);
+    items.push(`    {${colors.secondary}-fg}• JSON:{/${colors.secondary}-fg} {${colors.darkGray}-fg}GET /api/export?format=json{/${colors.darkGray}-fg}`);
+    items.push(`    {${colors.secondary}-fg}• CSV:{/${colors.secondary}-fg}  {${colors.darkGray}-fg}GET /api/export?format=csv{/${colors.darkGray}-fg}`);
+    items.push(`    {${colors.secondary}-fg}• Obsidian:{/${colors.secondary}-fg} {${colors.darkGray}-fg}POST /api/obsidian/export{/${colors.darkGray}-fg}`);
     items.push('');
 
-    items.push('All Settings');
-    items.push('─'.repeat(80));
+    items.push(styledText.bold(`{${colors.lightGray}-fg}All Settings{/${colors.lightGray}-fg}`));
+    items.push(`{${colors.borderLight}-fg}${'─'.repeat(80)}{/${colors.borderLight}-fg}`);
     const settingKeys = Object.keys(settings).sort();
     if (settingKeys.length === 0) {
-      items.push('  No custom settings configured.');
+      items.push(`  {${colors.darkGray}-fg}No custom settings configured.{/${colors.darkGray}-fg}`);
     } else {
       for (const key of settingKeys) {
         const value = settings[key];
-        items.push(`  ${key}: ${value}`);
+        items.push(`  {${colors.secondary}-fg}${key}:{/${colors.secondary}-fg} {${colors.lightGray}-fg}${value}{/${colors.lightGray}-fg}`);
       }
     }
     items.push('');
-    items.push('Note: Settings can be modified via the API using PUT /api/settings/:key');
+    items.push(`{${colors.darkGray}-fg}Note: Settings can be modified via the API using PUT /api/settings/:key{/${colors.darkGray}-fg}`);
 
     this.settingsList.setItems(items);
     this.settingsList.show();

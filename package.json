@@ -1,0 +1,29 @@
+{
+  "name": "scribe-activity-tracker",
+  "version": "1.0.0",
+  "description": "Local-first desktop activity tracker",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "shared/*",
+    "extensions/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:tracker\" \"npm run dev:desktop\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:tracker": "npm run dev --workspace=apps/tracker",
+    "dev:desktop": "npm run dev --workspace=apps/desktop",
+    "build": "npm run build --workspaces",
+    "build:shared": "cd shared/types && npm run build && cd ../database && npm run build",
+    "package": "npm run package --workspace=apps/desktop",
+    "test": "npm run test --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1"
+  }
+}
