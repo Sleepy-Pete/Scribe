@@ -1,17 +1,23 @@
 # Scribe Activity Tracker
 
-A local-first desktop activity tracker that monitors application usage, website activity, and call sessions. All data is stored locally in SQLite with no cloud connectivity.
+A local-first desktop activity tracker that monitors application usage, website activity, and call sessions. All data is stored locally in SQLite with AI-powered daily summaries.
 
-> **🚀 Quick Start**: See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide!
+> **🚀 Quick Start**: See [QUICK_START.md](QUICK_START.md) for a 5-minute setup guide!
+>
+> **🤖 AI Setup**: See [OPENROUTER_SETUP.md](OPENROUTER_SETUP.md) to enable AI summaries (~$0.02/month)
+>
+> **🤖 For AI Assistants**: See [AGENTS.md](AGENTS.md) for canonical development guidelines
 
 ## Features
 
 - **Application Tracking**: Monitor active applications with window titles and usage duration
 - **Website Tracking**: Track browser activity (requires browser extension - coming soon)
 - **Call Detection**: Automatically detect calls from Google Meet, Discord, Zoom, and Slack
+- **AI-Powered Summaries**: Daily insights combining tracker data + personal notes via OpenRouter
+- **Obsidian Integration**: Auto-export to your Obsidian vault with AI summaries
 - **Privacy First**: All data stored locally, optional privacy mode to redact sensitive information
 - **Session Management**: Intelligent session merging and idle detection
-- **Export**: Export your data to JSON or CSV formats
+- **Export**: Export your data to JSON, CSV, or Obsidian markdown formats
 - **TUI Dashboard**: Beautiful terminal-based interface for viewing your activity
 
 ## Architecture

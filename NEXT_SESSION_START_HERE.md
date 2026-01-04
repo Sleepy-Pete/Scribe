@@ -1,184 +1,157 @@
 # 🚀 NEXT SESSION - START HERE
 
-**Date:** 2026-01-02  
-**Status:** ✅ Bug Fixed, Awaiting Restart & Testing
+**Date:** 2026-01-04
+**Last Updated:** 2026-01-04
+**Status:** 🔄 Pending Git Push - AI Context System Complete
 
 ---
 
-## ⚡ IMMEDIATE ACTION: Restart Tracker to Apply Fix
+## 📋 What Was Done Today (2026-01-04)
 
-### The Bug (FIXED ✅)
-Chrome window titles were being captured but **not saved to database** due to missing field in `updateEvent()` function.
+### 1. Created AI Context System
+Set up a professional-grade AI assistant context system following Augment's official patterns:
 
-### The Fix (IMPLEMENTED ✅)
-Added `window_title` support to database update function.
+- **`AGENTS.md`** (NEW) - Canonical AI rules and project context
+  - Project overview and architecture
+  - AI working agreement (rules for how to operate)
+  - Repository map and conventions
+  - Tests & verification commands
+  - Current priorities & non-goals
+  - Conflict resolution hierarchy
 
-### What You Need to Do
+- **`.augment/rules/augment-global-rules.md`** - Core behavioral rules (always included)
+
+- **`AI_RULES.md`** (DELETED) - Replaced by AGENTS.md
+
+- **`README.md`** (UPDATED) - Added pointer to AGENTS.md for AI assistants
+
+### 2. Key Decisions Made
+- Using `AGENTS.md` at repo root (Augment's hierarchical discovery pattern)
+- Keeping `.augment/rules/` for short always-on rules
+- This file (`NEXT_SESSION_START_HERE.md`) for dynamic session state
+- `AGENTS.md` takes precedence over all other markdown files
+
+---
+
+## 📦 Pending Changes to Push
+
+### Modified Files (13 files, +439/-68 lines)
+| File | Changes |
+|------|---------|
+| `AI_RULES.md` | DELETED - replaced by AGENTS.md |
+| `README.md` | Added AI assistant pointer |
+| `apps/api/package.json` | AI provider dependencies |
+| `apps/api/src/index.ts` | AI summary endpoints (+131 lines) |
+| `apps/api/src/obsidian.ts` | AI-powered export integration |
+| `apps/tracker/src/index.ts` | Permission warnings, debugging |
+| `apps/tui/src/views/stats.ts` | Minor fixes |
+| `apps/tui/src/views/timeline.ts` | Minor fixes |
+| `package-lock.json` | Dependency updates |
+| `package.json` | Workspace dependencies |
+| `shared/database/package.json` | Dependencies |
+| `shared/database/src/index.ts` | window_title in updateEvent() |
+| `start-tui.sh` | Improved startup script |
+
+### New Files (Untracked)
+| File | Purpose |
+|------|---------|
+| `.augment/` | Augment rules directory |
+| `AGENTS.md` | Canonical AI context file |
+| `AI_SUMMARY.md` | AI summary feature docs |
+| `CONTEXT_NOTE_2026-01-03.md` | Historical context |
+| `FINISH_OLLAMA_SETUP.md` | Ollama setup guide |
+| `OPENROUTER_CONFIGURED.md` | OpenRouter status |
+| `OPENROUTER_SETUP.md` | OpenRouter setup guide |
+| `QUICK_START.md` | 5-minute setup guide |
+| `SETUP_COMPLETE.md` | Setup completion notes |
+| `apps/api/src/ai-summary.ts` | AI summary generation |
+| `scripts/setup-openrouter.sh` | OpenRouter setup script |
+| `test-ai-summary.sh` | AI summary test script |
+| `test-export-fix.js` | Export test script |
+
+### Suggested Commit Message
+```
+feat: Add AI context system and AI-powered Obsidian summaries
+
+- Add AGENTS.md as canonical AI assistant context file
+- Add .augment/rules/ for Augment-specific rules
+- Add AI summary generation for Obsidian exports (OpenRouter/Ollama)
+- Add OpenRouter integration with ~$0.02/month cost
+- Fix Chrome window title saving in session consolidation
+- Add permission warnings and debugging to tracker
+- Update README with AI assistant guidance
+- Delete old AI_RULES.md (replaced by AGENTS.md)
+```
+
+---
+
+## 🎯 Current Priorities
+
+From `AGENTS.md` Section 5:
+
+- [ ] Improve reliability of Chrome/web tracking and context display in TUI
+- [ ] Polish AI summary quality for Obsidian exports
+- [ ] Keep Obsidian export and auto-export robust
+- [ ] Maintain session consolidation logic
+
+---
+
+## ⏭️ Next Steps
+
+### Immediate (This Session)
+1. **Push pending changes** - Review and commit the work above
+2. **Verify AI summaries working** - Test with `./test-ai-summary.sh`
+3. **Test Chrome tracking** - Verify window titles are being saved
+
+### Upcoming Tasks
+- [ ] Consider archiving old context notes to `docs/archive/`
+- [ ] Set up automated Obsidian export scheduling
+- [ ] Review and update AGENTS.md priorities as needed
+
+---
+
+## 🔧 Quick Commands
 
 ```bash
-# 1. Quit the current TUI (press 'q' in the TUI window)
+# Push today's changes
+git add -A
+git commit -m "feat: Add AI context system and AI-powered Obsidian summaries"
+git push
 
-# 2. Restart the tracker
+# Start the TUI
 ./start-tui.sh
 
-# 3. Browse some websites in Chrome for 30-60 seconds
-#    - Visit different sites (YouTube, GitHub, Reddit, etc.)
-#    - Stay on each for 10+ seconds
+# Test AI summary
+./test-ai-summary.sh
 
-# 4. Verify the fix worked
-./scripts/verify-chrome-titles.sh
+# Check API health
+curl http://127.0.0.1:3737/health
+
+# Check database
+sqlite3 ~/.scribe-tracker/activity.db "SELECT COUNT(*) FROM events;"
 ```
 
 ---
 
-## 🔍 What Was Wrong
+## 📚 Key Documentation
 
-### Root Cause
-When session consolidation was implemented (2025-12-31), the code tried to update `window_title` during session continuation, but the database `updateEvent()` function didn't support that field.
-
-**Result:** Window titles were silently ignored, leaving empty strings in the database.
-
-### Why Chrome But Not Other Apps?
-- **Chrome/Browsers:** Use session consolidation (calls `updateEvent()`) ❌
-- **VS Code/Other Apps:** Create new events per window change (calls `insertEvent()`) ✅
-
-### Your Insight Was Correct! 🎯
-> "it was working earlier for chrome but now its not probably related to the condensing of information"
-
-**100% accurate!** The session consolidation feature introduced the bug.
+- **`AGENTS.md`** - AI rules and project context (READ THIS FIRST)
+- **`README.md`** - Project overview and setup
+- **`CHANGELOG.md`** - Recent changes
+- **`TROUBLESHOOTING.md`** - When things don't work
 
 ---
 
-## 📊 Verification Steps
+## ✅ Completed Recently
 
-### Step 1: Check Database Before Restart
-```bash
-sqlite3 ~/.scribe-tracker/activity.db "SELECT id, datetime(start_ts/1000, 'unixepoch', 'localtime') as start, app_name, window_title FROM events WHERE app_name LIKE '%Chrome%' ORDER BY start_ts DESC LIMIT 3;"
-```
-
-**Expected:** Empty `window_title` fields (old data)
-
-### Step 2: Restart Tracker
-```bash
-./start-tui.sh
-```
-
-### Step 3: Browse in Chrome
-- Open Chrome
-- Visit 3-4 different websites
-- Stay on each for 10+ seconds
-- Switch between tabs on the same domain
-
-### Step 4: Check Database After
-```bash
-sqlite3 ~/.scribe-tracker/activity.db "SELECT id, datetime(start_ts/1000, 'unixepoch', 'localtime') as start, app_name, substr(window_title, 1, 60) as title FROM events WHERE app_name LIKE '%Chrome%' ORDER BY start_ts DESC LIMIT 3;"
-```
-
-**Expected:** Full page titles visible!
-
-### Step 5: Check TUI
-- Open the TUI
-- Look at the Timeline view
-- Chrome entries should now show page titles in the detail line
+- [x] Chrome window title bug fixed (Jan 2-3)
+- [x] AI summary integration with OpenRouter (Jan 3-4)
+- [x] AGENTS.md created as canonical AI context (Jan 4)
+- [x] .augment/rules/ set up (Jan 4)
+- [x] Session consolidation working (Dec 31)
+- [x] Duration calculation bug fixed (Dec 31)
 
 ---
 
-## 📝 Files Changed
-
-### 1. `shared/database/src/index.ts` (FIXED)
-- Added `window_title` field to `updateEvent()` function
-- Lines 107-110
-
-### 2. `CHROME_CONTEXT_LOSS_INVESTIGATION.md` (NEW)
-- Complete root cause analysis
-- Timeline of when it broke
-- Why Chrome was affected but not other apps
-- Full technical explanation
-
-### 3. `apps/tracker/src/index.ts` (IMPROVED)
-- Added permission warning for empty browser titles
-- Better debugging output
-
-### 4. `apps/tracker/src/session-manager.ts` (IMPROVED)
-- Fixed browser session matching logic
-- Better handling of domain extraction edge cases
-
----
-
-## 🎯 Expected Behavior After Fix
-
-### Chrome Sessions
-```
-🌐 Google Chrome                    03:02 PM-03:05 PM  3m
-   Twelve Principles of Animation
-```
-
-### Session Consolidation (Still Working)
-- Multiple pages on **same domain** = ONE session
-- Different domains = SEPARATE sessions
-- Window title shows **last page** visited on that domain
-
-### Example Timeline
-```
-🌐 Google Chrome                    03:00 PM-03:02 PM  2m
-   GitHub - Scribe Repository
-
-🌐 Google Chrome                    03:02 PM-03:05 PM  3m
-   YouTube - Animation Tutorial
-
-🌐 Google Chrome                    03:05 PM-03:08 PM  3m
-   Reddit - Programming Discussion
-```
-
----
-
-## 🐛 If It Still Doesn't Work
-
-### Troubleshooting
-
-1. **Check if database module was rebuilt:**
-   ```bash
-   ls -la shared/database/dist/index.js
-   # Should show recent timestamp
-   ```
-
-2. **Check if tracker is using new code:**
-   ```bash
-   # Look for the permission warning in logs
-   tail -50 logs/tracker.log | grep "Screen Recording"
-   ```
-
-3. **Verify Chrome has actual titles:**
-   ```bash
-   ./scripts/check-chrome-applescript.sh
-   ```
-
-4. **Check for multiple tracker instances:**
-   ```bash
-   ps aux | grep "ts-node.*tracker" | grep -v grep
-   # Should show only ONE instance
-   ```
-
----
-
-## 📚 Additional Documentation
-
-- **Full Investigation:** `CHROME_CONTEXT_LOSS_INVESTIGATION.md`
-- **Session Consolidation:** `SESSION_TIMELINE_FIX.md`
-- **Permission Scripts:** `scripts/fix-screen-recording-permission.sh`
-- **Verification:** `scripts/verify-chrome-titles.sh`
-
----
-
-## ✅ Success Criteria
-
-- [ ] Tracker restarted with new code
-- [ ] Chrome window titles appear in database
-- [ ] TUI shows Chrome page titles
-- [ ] Session consolidation still works (same domain = one session)
-- [ ] Different domains create separate sessions
-
----
-
-**Ready to test!** 🚀
+**Ready for next session!** 🚀
 

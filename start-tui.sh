@@ -15,11 +15,22 @@ echo "📌 Using Node.js $(node --version)"
 echo "📌 Node binary: $(file $(which node) | cut -d: -f2)"
 echo ""
 
-# Check if better-sqlite3 needs to be rebuilt
+# Check if better-sqlite3 needs to be rebuilt for current architecture
 CURRENT_ARCH=$(uname -m)
-if [ ! -f "node_modules/better-sqlite3/build/Release/better_sqlite3.node" ]; then
+SQLITE_BINARY="shared/database/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+
+if [ -f "$SQLITE_BINARY" ]; then
+  # Check if binary matches current architecture
+  BINARY_ARCH=$(file "$SQLITE_BINARY" | grep -o "arm64\|x86_64" | head -1)
+  if [ "$CURRENT_ARCH" = "arm64" ] && [ "$BINARY_ARCH" != "arm64" ]; then
+    echo "⚠️  Architecture mismatch detected: binary is $BINARY_ARCH, system is $CURRENT_ARCH"
+    echo "📦 Rebuilding better-sqlite3 for $CURRENT_ARCH..."
+    cd shared/database && npm install better-sqlite3@latest >/dev/null 2>&1 && cd ../..
+    echo "✅ better-sqlite3 rebuilt for $CURRENT_ARCH"
+  fi
+elif [ ! -f "$SQLITE_BINARY" ]; then
   echo "📦 Building better-sqlite3 for $CURRENT_ARCH..."
-  npm rebuild better-sqlite3 >/dev/null 2>&1
+  cd shared/database && npm install better-sqlite3@latest >/dev/null 2>&1 && cd ../..
   echo "✅ better-sqlite3 built"
 fi
 

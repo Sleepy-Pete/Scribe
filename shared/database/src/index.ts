@@ -50,7 +50,11 @@ const initSchema = () => {
     { key: 'privacy_mode', value: 'false' },
     { key: 'obsidian_vault_path', value: '/Users/Peter/Petros' },
     { key: 'obsidian_auto_export', value: 'true' },
-    { key: 'obsidian_export_time', value: '18:00' }
+    { key: 'obsidian_export_time', value: '18:00' },
+    { key: 'ai_provider', value: 'ollama' },
+    { key: 'ai_model', value: 'llama3.2' },
+    { key: 'ai_api_key', value: '' },
+    { key: 'ai_summary_enabled', value: 'true' }
   ];
 
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');

@@ -134,8 +134,8 @@ export class TimelineView {
 
       for (let i = 0; i < this.timelineData.length; i++) {
         const block = this.timelineData[i];
-        const startTime = new Date(block.start_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const endTime = new Date(block.end_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const startTime = new Date(block.start_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const endTime = new Date(block.end_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         const duration = this.formatDuration(block.active_seconds);
 
         // Determine icon and color based on kind
@@ -220,8 +220,8 @@ export class TimelineView {
     const block = this.timelineData[index];
     this.selectedBlock = block;
 
-    const startTime = new Date(block.start_ts).toLocaleString();
-    const endTime = new Date(block.end_ts).toLocaleString();
+    const startTime = new Date(block.start_ts).toLocaleString([], { hour12: false });
+    const endTime = new Date(block.end_ts).toLocaleString([], { hour12: false });
     const duration = this.formatDuration(block.active_seconds);
 
     let content = '';

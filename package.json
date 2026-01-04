@@ -9,14 +9,17 @@
     "extensions/*"
   ],
   "scripts": {
+    "postinstall": "cd shared/database && npm install better-sqlite3@latest",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:tracker\" \"npm run dev:desktop\"",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:tracker": "npm run dev --workspace=apps/tracker",
     "dev:desktop": "npm run dev --workspace=apps/desktop",
+    "dev:tui": "npm run dev --workspace=apps/tui",
     "build": "npm run build --workspaces",
     "build:shared": "cd shared/types && npm run build && cd ../database && npm run build",
     "package": "npm run package --workspace=apps/desktop",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces",
+    "setup:openrouter": "./scripts/setup-openrouter.sh"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

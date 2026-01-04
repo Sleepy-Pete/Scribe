@@ -241,8 +241,8 @@ export class StatsView {
       callsContent = `{${colors.darkGray}-fg}No calls detected today{/${colors.darkGray}-fg}`;
     } else {
       stats.calls.forEach(call => {
-        const startTime = new Date(call.start_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const endTime = new Date(call.end_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const startTime = new Date(call.start_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const endTime = new Date(call.end_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         const duration = this.formatDuration(call.duration_seconds);
         const provider = this.getCallProviderName(call.call_provider);
 

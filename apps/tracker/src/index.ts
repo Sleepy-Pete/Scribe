@@ -56,6 +56,44 @@ class ActivityTracker {
     console.log('[Tracker] Tracker stopped');
   }
 
+  /**
+   * Check if the current activity is the tracker itself
+   * Returns true if we should skip tracking this activity
+   */
+  private isTrackerActivity(appName: string, windowTitle: string): boolean {
+    const appLower = appName.toLowerCase();
+    const titleLower = windowTitle.toLowerCase();
+
+    // Check if it's a terminal app
+    const isTerminal = appLower.includes('terminal') ||
+                      appLower.includes('iterm') ||
+                      appLower.includes('warp') ||
+                      appLower.includes('alacritty') ||
+                      appLower.includes('kitty') ||
+                      appLower.includes('hyper');
+
+    if (!isTerminal) {
+      return false;
+    }
+
+    // Check if the terminal is running tracker-related commands or viewing logs
+    const trackerKeywords = [
+      'tracker',
+      'scribe',
+      '/scribe',
+      'npm run dev',
+      'npm start',
+      'concurrently',
+      'tracker.log',
+      'api.log',
+      'apps/tracker',
+      'apps/api',
+      'apps/tui'
+    ];
+
+    return trackerKeywords.some(keyword => titleLower.includes(keyword));
+  }
+
   private async poll() {
     try {
       // Check for idle state
@@ -106,6 +144,13 @@ class ActivityTracker {
         } catch {
           windowTitle = url;
         }
+      }
+
+      // Skip tracking if this is the tracker itself
+      // Don't track terminals running the tracker or viewing tracker logs
+      if (this.isTrackerActivity(appName, windowTitle)) {
+        console.log('[Tracker] Skipping tracker self-activity');
+        return;
       }
 
       // Check for missing Screen Recording permission

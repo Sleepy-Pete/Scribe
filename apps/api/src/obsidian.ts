@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getEventsInRange, getSetting } from '@scribe/database';
 import { ActivityEvent, CallProvider, ObsidianExportResult } from '@scribe/types';
+import { generateAISummary } from './ai-summary';
 
 /**
  * Format seconds into human-readable duration
@@ -27,6 +28,17 @@ function formatTime(timestamp: number): string {
 }
 
 /**
+ * Format timestamp to HH:MM:SS for CSV
+ */
+function formatTimeWithSeconds(timestamp: number): string {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+}
+
+/**
  * Format call provider name
  */
 function formatCallProvider(provider: CallProvider): string {
@@ -38,6 +50,55 @@ function formatCallProvider(provider: CallProvider): string {
     other: 'Call'
   };
   return names[provider] || provider;
+}
+
+/**
+ * Generate CSV content for timeline events
+ */
+function generateTimelineCSV(events: ActivityEvent[]): string {
+  // CSV header
+  let csv = 'Date,Start Time,End Time,Duration (seconds),Activity Type,Application/Site,Details\n';
+
+  // Sort events chronologically (oldest to newest)
+  const sortedEvents = [...events].sort((a, b) => a.start_ts - b.start_ts);
+
+  for (const event of sortedEvents) {
+    const startDate = new Date(event.start_ts);
+    const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const startTime = formatTimeWithSeconds(event.start_ts);
+    const endTime = formatTimeWithSeconds(event.end_ts);
+    const durationSeconds = Math.floor((event.end_ts - event.start_ts) / 1000);
+
+    let activityType = '';
+    let label = '';
+    let detail = '';
+
+    if (event.kind === 'call') {
+      activityType = 'Call';
+      label = formatCallProvider(event.call_provider!);
+      detail = event.window_title || '';
+    } else if (event.kind === 'app') {
+      activityType = 'Application';
+      label = event.app_name || 'Unknown App';
+      detail = event.window_title || '';
+    } else if (event.kind === 'web') {
+      activityType = 'Web';
+      label = event.domain || 'Unknown Site';
+      detail = event.url || '';
+    }
+
+    // Escape CSV fields (handle commas and quotes)
+    const escapeCsvField = (field: string) => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+
+    csv += `${dateStr},${startTime},${endTime},${durationSeconds},${activityType},${escapeCsvField(label)},${escapeCsvField(detail)}\n`;
+  }
+
+  return csv;
 }
 
 /**
@@ -225,7 +286,7 @@ function findPersonalNote(vaultPath: string, date: string): string | null {
 /**
  * Generate merged markdown combining personal notes and tracker data
  */
-function generateMergedMarkdown(date: string, events: ActivityEvent[], personalNoteContent?: string): string {
+async function generateMergedMarkdown(date: string, events: ActivityEvent[], personalNoteContent?: string, aiSummary?: string): Promise<string> {
   const [year, month, day] = date.split('-').map(Number);
   const dateObj = new Date(year, month - 1, day);
   const formattedDate = dateObj.toLocaleDateString('en-US', {
@@ -237,7 +298,14 @@ function generateMergedMarkdown(date: string, events: ActivityEvent[], personalN
 
   let markdown = `# ${formattedDate}\n\n`;
 
-  // If personal note exists, include it first
+  // AI Summary first (if available)
+  if (aiSummary) {
+    markdown += `## AI Summary\n\n`;
+    markdown += `${aiSummary}\n\n`;
+    markdown += `---\n\n`;
+  }
+
+  // If personal note exists, include it next
   if (personalNoteContent) {
     markdown += `## Personal Notes\n\n`;
     markdown += personalNoteContent.trim() + '\n\n';
@@ -287,6 +355,17 @@ function generateMergedMarkdown(date: string, events: ActivityEvent[], personalN
       markdown += `${index + 1}. **${app.app_name}** - ${formatDuration(app.active_seconds)}\n`;
     });
     markdown += `\n`;
+  }
+
+  // Timeline section - reference to CSV file
+  markdown += `### Timeline\n\n`;
+
+  if (events.length === 0) {
+    markdown += `*No activity recorded for this day.*\n\n`;
+  } else {
+    markdown += `Full timeline with ${events.length} events available in attached CSV file:\n\n`;
+    markdown += `![[${date} - Timeline.csv]]\n\n`;
+    markdown += `*The timeline CSV contains: Start Time, End Time, Duration, Activity Type, Application/Site, and Details for each activity.*\n\n`;
   }
 
   return markdown;
@@ -340,22 +419,40 @@ export async function exportToObsidian(date: string): Promise<ObsidianExportResu
       personalNoteContent = fs.readFileSync(personalNotePath, 'utf-8');
     }
 
-    // Generate merged markdown
-    const markdown = generateMergedMarkdown(date, events, personalNoteContent);
+    // Generate AI summary
+    let aiSummary: string | undefined;
+    const summaryResult = await generateAISummary(date, events, personalNoteContent);
+    if (summaryResult.success && summaryResult.summary) {
+      aiSummary = summaryResult.summary;
+    }
 
-    // Format filename as YYYYMMDD - Export.md
+    // Generate merged markdown
+    const markdown = await generateMergedMarkdown(date, events, personalNoteContent, aiSummary);
+
+    // Generate timeline CSV
+    const timelineCSV = generateTimelineCSV(events);
+
+    // Format filenames
     const yearStr = year.toString();
     const monthStr = month.toString().padStart(2, '0');
     const dayStr = day.toString().padStart(2, '0');
-    const filename = `${yearStr}${monthStr}${dayStr} - Export.md`;
-    const filePath = path.join(trackerFolder, filename);
+    const dateStr = `${yearStr}${monthStr}${dayStr}`;
 
-    // Write to file
-    fs.writeFileSync(filePath, markdown, 'utf-8');
+    const markdownFilename = `${dateStr} - Export.md`;
+    const csvFilename = `${date} - Timeline.csv`;
+
+    const markdownFilePath = path.join(trackerFolder, markdownFilename);
+    const csvFilePath = path.join(trackerFolder, csvFilename);
+
+    // Write markdown file
+    fs.writeFileSync(markdownFilePath, markdown, 'utf-8');
+
+    // Write CSV file
+    fs.writeFileSync(csvFilePath, timelineCSV, 'utf-8');
 
     return {
       success: true,
-      file_path: filePath
+      file_path: markdownFilePath
     };
   } catch (error: any) {
     return {

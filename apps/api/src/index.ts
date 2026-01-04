@@ -12,6 +12,7 @@ import {
 } from '@scribe/database';
 import { ActivityEvent, DailyStats, TimelineBlock } from '@scribe/types';
 import { exportToObsidian, generateDailyMarkdown, getObsidianSettings, startAutoExportScheduler } from './obsidian';
+import { testAIConnection } from './ai-summary';
 
 const app = express();
 const PORT = 3737;
@@ -301,23 +302,68 @@ app.get('/api/export', (req, res) => {
   }
 });
 
+// Helper to format timestamp to HH:MM:SS
+function formatTimeWithSeconds(timestamp: number): string {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+}
+
+// Helper to escape CSV fields (handle commas, quotes, and newlines)
+function escapeCsvField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`;
+  }
+  return field;
+}
+
 // Helper to convert events to CSV
 function eventsToCSV(events: ActivityEvent[]): string {
-  const headers = ['id', 'kind', 'app_name', 'process_name', 'window_title', 'url', 'domain', 'call_provider', 'start_ts', 'end_ts', 'active_seconds', 'privacy_redacted'];
-  const rows = events.map(e => [
-    e.id,
-    e.kind,
-    e.app_name || '',
-    e.process_name || '',
-    e.window_title || '',
-    e.url || '',
-    e.domain || '',
-    e.call_provider || '',
-    e.start_ts,
-    e.end_ts,
-    e.active_seconds,
-    e.privacy_redacted ? 'true' : 'false'
-  ]);
+  const headers = [
+    'id',
+    'kind',
+    'app_name',
+    'process_name',
+    'window_title',
+    'url',
+    'domain',
+    'call_provider',
+    'start_date',
+    'start_time',
+    'end_time',
+    'start_ts',
+    'end_ts',
+    'duration_seconds',
+    'privacy_redacted'
+  ];
+
+  const rows = events.map(e => {
+    const startDate = new Date(e.start_ts);
+    const dateStr = startDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const startTime = formatTimeWithSeconds(e.start_ts);
+    const endTime = formatTimeWithSeconds(e.end_ts);
+    const durationSeconds = Math.floor((e.end_ts - e.start_ts) / 1000);
+
+    return [
+      e.id,
+      e.kind,
+      escapeCsvField(e.app_name || ''),
+      escapeCsvField(e.process_name || ''),
+      escapeCsvField(e.window_title || ''),
+      escapeCsvField(e.url || ''),
+      escapeCsvField(e.domain || ''),
+      e.call_provider || '',
+      dateStr,
+      startTime,
+      endTime,
+      e.start_ts,
+      e.end_ts,
+      durationSeconds,
+      e.privacy_redacted ? 'true' : 'false'
+    ];
+  });
 
   return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 }
@@ -354,6 +400,61 @@ app.put('/api/obsidian/settings', (req, res) => {
 
     const updatedSettings = getObsidianSettings();
     res.json({ success: true, settings: updatedSettings });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get AI settings
+app.get('/api/ai/settings', (req, res) => {
+  try {
+    const settings = {
+      provider: getSetting('ai_provider') || 'ollama',
+      model: getSetting('ai_model') || 'llama3.2',
+      enabled: getSetting('ai_summary_enabled') === 'true',
+      has_api_key: !!getSetting('ai_api_key')
+    };
+    res.json(settings);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update AI settings
+app.put('/api/ai/settings', (req, res) => {
+  try {
+    const { provider, model, enabled, api_key } = req.body;
+
+    if (provider !== undefined) {
+      setSetting('ai_provider', provider);
+    }
+    if (model !== undefined) {
+      setSetting('ai_model', model);
+    }
+    if (enabled !== undefined) {
+      setSetting('ai_summary_enabled', enabled.toString());
+    }
+    if (api_key !== undefined) {
+      setSetting('ai_api_key', api_key);
+    }
+
+    const updatedSettings = {
+      provider: getSetting('ai_provider') || 'ollama',
+      model: getSetting('ai_model') || 'llama3.2',
+      enabled: getSetting('ai_summary_enabled') === 'true',
+      has_api_key: !!getSetting('ai_api_key')
+    };
+    res.json({ success: true, settings: updatedSettings });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test AI connection
+app.post('/api/ai/test', async (req, res) => {
+  try {
+    const result = await testAIConnection();
+    res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
